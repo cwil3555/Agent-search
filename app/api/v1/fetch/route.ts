@@ -3,8 +3,6 @@ import { z } from "zod";
 import { buildFetchCacheKey } from "@/lib/cache/keys";
 import { getCache, setCache } from "@/lib/cache/search-cache";
 import { fetchHtml } from "@/lib/content/fetch-html";
-import { htmlToMarkdown } from "@/lib/content/markdown";
-import { extractReadableContent } from "@/lib/content/readability";
 import { truncateForAgentContext } from "@/lib/content/truncate";
 import { requireApiKey } from "@/lib/auth/require-api-key";
 import { buildOptionsResponse, corsHeaders } from "@/lib/http/cors";
@@ -40,6 +38,27 @@ export async function POST(request: NextRequest) {
     const payload = bodySchema.parse(await request.json());
     trackedUrl = normalizeUrl(payload.url);
     const cacheKey = buildFetchCacheKey(trackedUrl);
+    let extractReadableContent: (url: string, html: string) => {
+      title: string;
+      content: string;
+      textContent: string;
+    };
+    let htmlToMarkdown: (html: string) => string;
+
+    try {
+      const readabilityModule = await import("@/lib/content/readability");
+      const markdownModule = await import("@/lib/content/markdown");
+      extractReadableContent = readabilityModule.extractReadableContent;
+      htmlToMarkdown = markdownModule.htmlToMarkdown;
+    } catch (error) {
+      const details =
+        error instanceof Error ? error.message : "Unknown module import failure.";
+      throw new AppError(
+        `Content processing dependency load failed: ${details}`,
+        500,
+        "CONTENT_DEPENDENCY_LOAD_FAILED",
+      );
+    }
 
     const cached = await getCache<FetchResponse>(FETCH_CACHE_ENDPOINT, cacheKey);
     if (cached) {

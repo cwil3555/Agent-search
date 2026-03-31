@@ -4,8 +4,6 @@ import { buildFetchCacheKey, buildResearchCacheKey } from "@/lib/cache/keys";
 import { getCache, setCache } from "@/lib/cache/search-cache";
 import { braveSearch } from "@/lib/brave/search";
 import { fetchHtml } from "@/lib/content/fetch-html";
-import { htmlToMarkdown } from "@/lib/content/markdown";
-import { extractReadableContent } from "@/lib/content/readability";
 import { truncateForAgentContext } from "@/lib/content/truncate";
 import { requireApiKey } from "@/lib/auth/require-api-key";
 import { buildOptionsResponse, corsHeaders } from "@/lib/http/cors";
@@ -57,6 +55,26 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     const searchResults = await braveSearch(requestBody.query, requestBody.depth);
+    let htmlToMarkdown: (html: string) => string;
+    let extractReadableContent: (url: string, html: string) => {
+      title: string;
+      content: string;
+      textContent: string;
+    };
+    try {
+      const markdownModule = await import("@/lib/content/markdown");
+      const readabilityModule = await import("@/lib/content/readability");
+      htmlToMarkdown = markdownModule.htmlToMarkdown;
+      extractReadableContent = readabilityModule.extractReadableContent;
+    } catch (error) {
+      const details =
+        error instanceof Error ? error.message : "Unknown module import failure.";
+      throw new AppError(
+        `Content processing dependency load failed: ${details}`,
+        500,
+        "CONTENT_DEPENDENCY_LOAD_FAILED",
+      );
+    }
 
     const enriched = await Promise.all(
       searchResults.slice(0, requestBody.depth).map(async (item) => {
