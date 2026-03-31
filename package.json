@@ -1,0 +1,43 @@
+{
+  "name": "agent-search",
+  "version": "1.0.0",
+  "description": "AgentSearch API for AI agents",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cwil3555/Agent-search.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cwil3555/Agent-search/issues"
+  },
+  "homepage": "https://github.com/cwil3555/Agent-search#readme",
+  "dependencies": {
+    "@mozilla/readability": "^0.6.0",
+    "@supabase/supabase-js": "^2.101.0",
+    "jsdom": "^29.0.1",
+    "next": "^14.2.35",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "turndown": "^7.2.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.37",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/turndown": "^5.0.5",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.35",
+    "typescript": "^5.9.3"
+  }
+}
