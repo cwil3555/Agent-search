@@ -22,9 +22,16 @@ export async function POST(request: NextRequest): Promise<Response> {
   const endpoint = "/api/v1/search";
   let trackedQuery: string | null = null;
   let auth: Awaited<ReturnType<typeof requireApiKey>> | null = null;
+  let authStepFailed = false;
+  let braveStepFailed = false;
 
   try {
-    auth = await requireApiKey(request);
+    try {
+      auth = await requireApiKey(request);
+    } catch (error) {
+      authStepFailed = true;
+      throw error;
+    }
     const payload = bodySchema.parse(await request.json());
     trackedQuery = payload.query;
 
@@ -64,7 +71,13 @@ export async function POST(request: NextRequest): Promise<Response> {
       );
     }
 
-    const braveResults = await braveSearch(payload.query, payload.num_results);
+    let braveResults: Awaited<ReturnType<typeof braveSearch>>;
+    try {
+      braveResults = await braveSearch(payload.query, payload.num_results);
+    } catch (error) {
+      braveStepFailed = true;
+      throw error;
+    }
     const responsePayload = {
       results: braveResults,
       cached: false,
@@ -84,12 +97,19 @@ export async function POST(request: NextRequest): Promise<Response> {
       "x-requests-remaining": String(auth.requestsRemaining),
     });
   } catch (error) {
-    const runtimeMessage =
+    const rawMessage =
       error instanceof Error && error.message
         ? error.message
         : typeof error === "string" && error
           ? error
           : "Unknown runtime error.";
+    const runtimeMessage = authStepFailed
+      ? rawMessage.startsWith("Supabase auth check failed:")
+        ? rawMessage
+        : `Supabase auth check failed: ${rawMessage}`
+      : braveStepFailed
+        ? `Brave API call failed: ${rawMessage}`
+        : rawMessage;
     const appError =
       error instanceof AppError
         ? error
