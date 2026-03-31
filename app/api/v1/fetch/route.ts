@@ -86,10 +86,14 @@ export async function POST(request: NextRequest) {
       "x-requests-remaining": String(auth.requestsRemaining),
     });
   } catch (error) {
+    const runtimeMessage =
+      error instanceof Error && error.message ? error.message : "Unexpected server error.";
     const appError =
       error instanceof z.ZodError
         ? new AppError("Invalid request payload. Expected { url: string }.", 400, "BAD_REQUEST")
-        : toAppError(error);
+        : error instanceof AppError
+          ? error
+          : new AppError(runtimeMessage, 500, "INTERNAL_ERROR");
 
     if (auth?.apiKeyId) {
       await logUsage({
@@ -101,7 +105,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return jsonError(appError, "Unexpected server error.", {
+    return jsonError(appError, runtimeMessage, {
       ...corsHeaders(),
       ...(auth ? { "x-requests-remaining": String(auth.requestsRemaining) } : {}),
     });
