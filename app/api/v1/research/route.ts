@@ -135,7 +135,11 @@ export async function POST(request: NextRequest): Promise<Response> {
         ? error
         : error instanceof z.ZodError
           ? new AppError("Invalid request payload.", 400, "BAD_REQUEST")
-          : new AppError("Unexpected server error.", 500, "INTERNAL_ERROR");
+          : new AppError(
+              error instanceof Error ? error.message : "Unexpected server error.",
+              500,
+              "INTERNAL_ERROR"
+            );
 
     if (auth?.apiKeyId) {
       await trackUsage({
@@ -147,9 +151,13 @@ export async function POST(request: NextRequest): Promise<Response> {
       });
     }
 
-    return jsonError(appError, "Unexpected server error.", {
+    return jsonError(
+      appError,
+      error instanceof Error ? error.message : "Unexpected server error.",
+      {
       ...corsHeaders(),
       ...(auth ? { "x-requests-remaining": String(auth.requestsRemaining) } : {}),
-    });
+      }
+    );
   }
 }
